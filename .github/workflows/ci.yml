@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.159.0"
+          extended: true
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint PlantUML renderer script
+        run: shellcheck scripts/render-plantuml.sh
+
+      - name: Build sample site
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE_DIR="${RUNNER_TEMP}/site"
+          OUT_DIR="${RUNNER_TEMP}/public"
+          mkdir -p "${SITE_DIR}/content" "${SITE_DIR}/assets" "${SITE_DIR}/static" "${SITE_DIR}/layouts/_default" "${SITE_DIR}/_modules"
+          ln -s "${GITHUB_WORKSPACE}" "${SITE_DIR}/_modules/hugo-mod-plantuml"
+
+          cat > "${SITE_DIR}/layouts/_default/single.html" <<'EOF'
+          <!DOCTYPE html>
+          <html><body>{{ .Content }}</body></html>
+          EOF
+
+          cat > "${SITE_DIR}/layouts/_default/list.html" <<'EOF'
+          <!DOCTYPE html>
+          <html><body>{{ .Content }}</body></html>
+          EOF
+
+          cat > "${SITE_DIR}/hugo.toml" <<'EOF'
+          baseURL = "https://example.org/"
+          [module]
+            [[module.mounts]]
+              source = "content"
+              target = "content"
+            [[module.mounts]]
+              source = "assets"
+              target = "assets"
+            [[module.mounts]]
+              source = "static"
+              target = "static"
+            [[module.mounts]]
+              source = "layouts"
+              target = "layouts"
+            [[module.mounts]]
+              source = "_modules/hugo-mod-plantuml/layouts"
+              target = "layouts"
+          EOF
+
+          cat > "${SITE_DIR}/assets/diagram.puml" <<'EOF'
+          @startuml
+          Alice -> Bob: Hello
+          @enduml
+          EOF
+
+          cat > "${SITE_DIR}/content/test.md" <<'EOF'
+          ---
+          title: "PlantUML test"
+          ---
+
+          {{< plantuml src="diagram.puml" alt="PlantUML CI diagram" />}}
+          EOF
+
+          sh "${SITE_DIR}/_modules/hugo-mod-plantuml/scripts/render-plantuml.sh" "${SITE_DIR}"
+          test -f "${SITE_DIR}/static/generated/plantuml/diagram.svg"
+          hugo --source "${SITE_DIR}" --destination "${OUT_DIR}"
+          grep -q '/generated/plantuml/diagram.svg' "${OUT_DIR}/test/index.html"
