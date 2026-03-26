@@ -84,7 +84,7 @@ jobs:
           title: "PlantUML test"
           ---
 
-          {{< plantuml src="diagram.puml" alt="PlantUML CI diagram" />}}
+          {{< plantuml src="diagram.puml" alt="PlantUML CI diagram" >}}
           EOF
 
           sh "${SITE_DIR}/_modules/hugo-mod-plantuml/scripts/render-plantuml.sh" "${SITE_DIR}"
