@@ -1,0 +1,10 @@
+{{- $src := .Get "src" -}}
+{{- if not $src -}}
+  {{- errorf "hugo-mod-plantuml: param 'src' is required in %s" .Page.File.Path -}}
+{{- end -}}
+{{- $alt := default "PlantUML diagram" (.Get "alt") -}}
+{{- $class := default "" (.Get "class") -}}
+{{- $svgPath := printf "generated/plantuml/%s" ($src | replaceRE "\\.[^.]+$" ".svg") -}}
+<figure class="hugo-mod-plantuml{{ if $class }} {{ $class }}{{ end }}">
+  <img src="{{ $svgPath | relURL }}" alt="{{ $alt }}" loading="lazy">
+</figure>
