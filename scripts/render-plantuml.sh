@@ -7,9 +7,14 @@ ASSETS_DIR="${SITE_DIR}/assets"
 OUT_DIR="${SITE_DIR}/static/generated/plantuml"
 JAR_PATH="${MODULE_DIR}/bin/plantuml.jar"
 
+# The jar is not vendored; fetch and verify it on demand.
 if [ ! -f "${JAR_PATH}" ]; then
-  echo "[plantuml] missing jar: ${JAR_PATH}" >&2
-  exit 1
+  if [ -x "${MODULE_DIR}/scripts/fetch-plantuml.sh" ] || [ -f "${MODULE_DIR}/scripts/fetch-plantuml.sh" ]; then
+    sh "${MODULE_DIR}/scripts/fetch-plantuml.sh" "${MODULE_DIR}"
+  else
+    echo "[plantuml] missing jar and fetch script: ${JAR_PATH}" >&2
+    exit 1
+  fi
 fi
 
 if [ ! -d "${ASSETS_DIR}" ]; then
