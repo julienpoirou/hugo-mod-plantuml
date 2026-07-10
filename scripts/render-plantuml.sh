@@ -48,10 +48,17 @@ render_one() {
 
   tmp_file="${out_file}.tmp.$$"
   echo "[plantuml] render ${rel_path} -> ${out_file#"${SITE_DIR}"/}"
-  java -Djava.awt.headless=true \
+  # xargs runs this in a bash -c subshell without set -e, so java's exit code
+  # must be checked explicitly: on failure, drop the partial file and return
+  # non-zero so xargs (and thus the build) fails instead of shipping a broken SVG.
+  if ! java -Djava.awt.headless=true \
     -DPLANTUML_SECURITY_PROFILE="${PLANTUML_SECURITY_PROFILE}" \
     -Dplantuml.include.path="${ASSETS_DIR}" \
-    -jar "${JAR_PATH}" -charset UTF-8 -tsvg -pipe < "${source_file}" > "${tmp_file}"
+    -jar "${JAR_PATH}" -charset UTF-8 -tsvg -pipe < "${source_file}" > "${tmp_file}"; then
+    rm -f "${tmp_file}"
+    echo "[plantuml] render failed: ${rel_path}" >&2
+    return 1
+  fi
   mv "${tmp_file}" "${out_file}"
 }
 export -f render_one
