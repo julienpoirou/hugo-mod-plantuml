@@ -122,3 +122,59 @@ jobs:
             exit 1
           fi
           test ! -f "${SITE_DIR}/static/generated/plantuml/evil.svg"
+          rm "${SITE_DIR}/assets/evil.puml"
+
+      - name: Batch rendering (single JVM for N diagrams)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE_DIR="${RUNNER_TEMP}/site"
+          MODULE_DIR="${SITE_DIR}/_modules/hugo-mod-plantuml"
+
+          for i in 1 2 3; do
+            printf '@startuml\nA%s -> B%s\n@enduml\n' "${i}" "${i}" > "${SITE_DIR}/assets/batch-${i}.puml"
+          done
+          mkdir -p "${SITE_DIR}/assets/sub"
+          printf '@startuml\nX -> "École n°1"\n@enduml\n' > "${SITE_DIR}/assets/sub/nested.puml"
+
+          # A single render-plantuml.sh call must render every new (stale)
+          # diagram, mirroring subdirectories and preserving utf-8 labels.
+          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
+          for i in 1 2 3; do
+            test -f "${SITE_DIR}/static/generated/plantuml/batch-${i}.svg"
+          done
+          test -f "${SITE_DIR}/static/generated/plantuml/sub/nested.svg"
+          # PlantUML XML-entity-encodes accented/special characters in SVG
+          # text (e.g. É -> &#201;), so check the ascii-safe substring that
+          # survives either representation rather than the literal utf-8 form.
+          grep -q 'cole n' "${SITE_DIR}/static/generated/plantuml/sub/nested.svg"
+
+          # No beside-source .svg is left next to the .puml sources: every
+          # rendered output is moved into static/generated/plantuml/**.
+          test -z "$(find "${SITE_DIR}/assets" -name '*.svg')"
+
+          # Incremental: a second run must render nothing (nothing is stale).
+          if [ -n "$(sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}")" ]; then
+            echo "expected the second run to skip diagrams that are up to date" >&2
+            exit 1
+          fi
+
+          # All-or-nothing batch semantics: if one diagram in the same batch
+          # is invalid, none of that batch's outputs are published, not even
+          # for the sibling diagram that would have rendered fine. PlantUML's
+          # batch mode gives no reliable per-file exit status, so a single
+          # JVM invocation for N files fails (or succeeds) as a unit.
+          printf '@startuml\nQ -> R\n@enduml\n' > "${SITE_DIR}/assets/batch-good.puml"
+          printf '@startuml\nnot valid syntax !!! [[[\n@enduml\n' > "${SITE_DIR}/assets/batch-bad.puml"
+          if sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"; then
+            echo "expected the batch to fail when one diagram is invalid" >&2
+            exit 1
+          fi
+          test ! -f "${SITE_DIR}/static/generated/plantuml/batch-good.svg"
+          test ! -f "${SITE_DIR}/static/generated/plantuml/batch-bad.svg"
+          test -z "$(find "${SITE_DIR}/assets" -name '*.svg')"
+
+          # Removing the invalid sibling lets the good diagram publish on retry.
+          rm "${SITE_DIR}/assets/batch-bad.puml"
+          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
+          test -f "${SITE_DIR}/static/generated/plantuml/batch-good.svg"

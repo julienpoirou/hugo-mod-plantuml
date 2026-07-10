@@ -58,9 +58,17 @@ sh _modules/hugo-mod-plantuml/scripts/render-plantuml.sh .
 Run this **before** `hugo`: the shortcode fails the build if the SVG for a
 referenced source has not been generated.
 
+All diagrams that need rendering (new or changed since the last run) are
+rendered in a **single JVM invocation**, not one process per file — the
+dominant cost of running PlantUML from the CLI is JVM startup, so batching
+avoids paying it once per diagram. This means the diagrams in a given run
+succeed or fail **as a unit**: PlantUML's batch mode does not report which
+specific file failed, so if any diagram in the batch is invalid, none of
+that batch's outputs are published (already-published diagrams from a prior
+successful run are untouched). Fix or remove the invalid source and rerun.
+
 Tunable environment variables:
 
-- `PLANTUML_JOBS` — number of diagrams to render in parallel (default: CPU count)
 - `PLANTUML_SECURITY_PROFILE` — PlantUML security profile (default: `SECURE`)
 - `PLANTUML_VERSION` / `PLANTUML_SHA256` / `PLANTUML_URL` — pin a different jar
 
