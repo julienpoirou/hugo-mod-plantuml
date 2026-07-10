@@ -31,8 +31,8 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
 
-      - name: Lint PlantUML renderer script
-        run: shellcheck scripts/render-plantuml.sh
+      - name: Lint PlantUML shell scripts
+        run: shellcheck scripts/render-plantuml.sh scripts/fetch-plantuml.sh
 
       - name: Build sample site
         shell: bash
@@ -85,9 +85,40 @@ jobs:
           ---
 
           {{< plantuml src="diagram.puml" alt="PlantUML CI diagram" >}}
+
+          {{< puml src="diagram.puml" alt="alias" >}}
           EOF
 
-          sh "${SITE_DIR}/_modules/hugo-mod-plantuml/scripts/render-plantuml.sh" "${SITE_DIR}"
+          MODULE_DIR="${SITE_DIR}/_modules/hugo-mod-plantuml"
+
+          # The jar is not vendored: it must not be present before fetching.
+          test ! -f "${MODULE_DIR}/bin/plantuml.jar"
+
+          # Before rendering, the shortcode must fail the build (no SVG yet).
+          if hugo --source "${SITE_DIR}" --destination "${RUNNER_TEMP}/public-missing"; then
+            echo "expected the build to fail before the SVG is rendered" >&2
+            exit 1
+          fi
+
+          # Rendering fetches and verifies the jar, then produces the SVG.
+          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
+          test -f "${MODULE_DIR}/bin/plantuml.jar"
           test -f "${SITE_DIR}/static/generated/plantuml/diagram.svg"
+          grep -q '<svg' "${SITE_DIR}/static/generated/plantuml/diagram.svg"
+
           hugo --source "${SITE_DIR}" --destination "${OUT_DIR}"
           grep -q '/generated/plantuml/diagram.svg' "${OUT_DIR}/test/index.html"
+
+          # The SECURE profile must block a local !include: the render fails and
+          # leaves no output for the malicious source.
+          cat > "${SITE_DIR}/assets/evil.puml" <<'EOF'
+          @startuml
+          !include /etc/hostname
+          Alice -> Bob
+          @enduml
+          EOF
+          if sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"; then
+            echo "expected the SECURE profile to reject a local !include" >&2
+            exit 1
+          fi
+          test ! -f "${SITE_DIR}/static/generated/plantuml/evil.svg"
