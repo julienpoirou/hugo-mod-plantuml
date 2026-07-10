@@ -4,7 +4,10 @@
 {{- end -}}
 {{- $alt := default "PlantUML diagram" (.Get "alt") -}}
 {{- $class := default "" (.Get "class") -}}
-{{- $svgPath := printf "generated/plantuml/%s" ($src | replaceRE "\\.[^.]+$" ".svg") -}}
+{{- $svgRel := printf "generated/plantuml/%s" ($src | replaceRE "\\.[^.]+$" ".svg") -}}
+{{- if not (fileExists (printf "static/%s" $svgRel)) -}}
+  {{- errorf "hugo-mod-plantuml: rendered SVG %q not found (run scripts/render-plantuml.sh before hugo). File: %s" $svgRel .Page.File.Path -}}
+{{- end -}}
 <figure class="hugo-mod-plantuml{{ if $class }} {{ $class }}{{ end }}">
-  <img src="{{ $svgPath | relURL }}" alt="{{ $alt }}" loading="lazy">
+  <img src="{{ $svgRel | relURL }}" alt="{{ $alt }}" loading="lazy">
 </figure>
