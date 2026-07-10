@@ -15,7 +15,7 @@ Standalone Hugo module for local PlantUML rendering with Java, without Kroki or 
 
 ## Features
 
-- Render diagrams with `{{< plantuml src="..." />}}`
+- Render diagrams with `{{< plantuml src="..." >}}`
 - Ship a local `render-plantuml.sh` pipeline for SVG generation
 - Fetch the MIT-licensed PlantUML jar on demand, verified against a pinned SHA-256
 - Render under the `SECURE` PlantUML security profile by default
@@ -67,13 +67,13 @@ Tunable environment variables:
 Use the shortcode:
 
 ```text
-{{< plantuml src="renderers/plantuml.puml" alt="PlantUML diagram" />}}
+{{< plantuml src="renderers/plantuml.puml" alt="PlantUML diagram" >}}
 ```
 
 Alias available when needed:
 
 ```text
-{{< puml src="renderers/plantuml.puml" alt="PlantUML diagram" />}}
+{{< puml src="renderers/plantuml.puml" alt="PlantUML diagram" >}}
 ```
 
 ## Security
