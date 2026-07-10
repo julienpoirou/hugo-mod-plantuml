@@ -12,6 +12,11 @@ JAR_PATH="${MODULE_DIR}/bin/plantuml.jar"
 # Legitimate includes are still allowed from within the site's assets/ tree.
 PLANTUML_SECURITY_PROFILE="${PLANTUML_SECURITY_PROFILE:-SECURE}"
 
+# Number of diagrams to render in parallel. Defaults to the CPU count.
+if [ -z "${PLANTUML_JOBS:-}" ]; then
+  PLANTUML_JOBS="$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 4)"
+fi
+
 # The jar is not vendored; fetch and verify it on demand.
 if [ ! -f "${JAR_PATH}" ]; then
   if [ -x "${MODULE_DIR}/scripts/fetch-plantuml.sh" ] || [ -f "${MODULE_DIR}/scripts/fetch-plantuml.sh" ]; then
@@ -26,23 +31,34 @@ if [ ! -d "${ASSETS_DIR}" ]; then
   exit 0
 fi
 
-# Render every PlantUML source under assets/ into a mirrored SVG tree under static/.
-find "${ASSETS_DIR}" -type f \( -name '*.puml' -o -name '*.plantuml' -o -name '*.uml' \) | while IFS= read -r source_file; do
+# Render a single source file to its mirrored SVG, rebuilding only when the
+# source or the renderer jar is newer than the output. Runs in its own subshell
+# under xargs, so it takes everything it needs from the environment.
+render_one() {
+  source_file="$1"
   rel_path="${source_file#"${ASSETS_DIR}"/}"
   out_rel="$(printf '%s' "${rel_path}" | sed 's/\.[^.]*$/.svg/')"
   out_file="${OUT_DIR}/${out_rel}"
-  out_dir="$(dirname "${out_file}")"
 
-  mkdir -p "${out_dir}"
+  mkdir -p "$(dirname "${out_file}")"
 
-  # Rebuild only when the source or the renderer jar changed.
-  if [ ! -f "${out_file}" ] || [ "${source_file}" -nt "${out_file}" ] || [ "${JAR_PATH}" -nt "${out_file}" ]; then
-    tmp_file="${out_file}.tmp"
-    echo "[plantuml] render ${rel_path} -> ${out_file#"${SITE_DIR}"/}"
-    java -Djava.awt.headless=true \
-      -DPLANTUML_SECURITY_PROFILE="${PLANTUML_SECURITY_PROFILE}" \
-      -Dplantuml.include.path="${ASSETS_DIR}" \
-      -jar "${JAR_PATH}" -charset UTF-8 -tsvg -pipe < "${source_file}" > "${tmp_file}"
-    mv "${tmp_file}" "${out_file}"
+  if [ -f "${out_file}" ] && [ ! "${source_file}" -nt "${out_file}" ] && [ ! "${JAR_PATH}" -nt "${out_file}" ]; then
+    return 0
   fi
-done
+
+  tmp_file="${out_file}.tmp.$$"
+  echo "[plantuml] render ${rel_path} -> ${out_file#"${SITE_DIR}"/}"
+  java -Djava.awt.headless=true \
+    -DPLANTUML_SECURITY_PROFILE="${PLANTUML_SECURITY_PROFILE}" \
+    -Dplantuml.include.path="${ASSETS_DIR}" \
+    -jar "${JAR_PATH}" -charset UTF-8 -tsvg -pipe < "${source_file}" > "${tmp_file}"
+  mv "${tmp_file}" "${out_file}"
+}
+export -f render_one
+export ASSETS_DIR OUT_DIR SITE_DIR JAR_PATH PLANTUML_SECURITY_PROFILE
+
+# Render every PlantUML source under assets/ into a mirrored SVG tree under
+# static/, up to PLANTUML_JOBS diagrams at a time. -print0/-0 keep paths with
+# spaces intact; xargs exits non-zero if any render fails, failing the build.
+find "${ASSETS_DIR}" -type f \( -name '*.puml' -o -name '*.plantuml' -o -name '*.uml' \) -print0 \
+  | xargs -0 -P "${PLANTUML_JOBS}" -I{} bash -c 'render_one "$@"' _ {}
