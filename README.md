@@ -11,15 +11,18 @@
   <img src="./logo.svg" alt="hugo-mod-plantuml logo" width="160" height="160">
 </p>
 
-Standalone Hugo module for local PlantUML rendering with Java and a vendored `plantuml.jar`, without Kroki or any remote rendering service.
+Standalone Hugo module for local PlantUML rendering with Java, without Kroki or any remote rendering service. The MIT-licensed PlantUML jar is fetched on demand and checksum-verified rather than vendored.
 
 ## Features
 
 - Render diagrams with `{{< plantuml src="..." />}}`
 - Ship a local `render-plantuml.sh` pipeline for SVG generation
+- Fetch the MIT-licensed PlantUML jar on demand, verified against a pinned SHA-256
+- Render under the `SECURE` PlantUML security profile by default
+- Render diagrams in parallel across CPU cores
 - Work without external PlantUML servers
 - Mirror `assets/**/*.puml` to `static/generated/plantuml/**/*.svg`
-- Fail explicitly at build time when `src` is missing
+- Fail explicitly at build time when `src` is missing or the SVG was not rendered
 
 ## Requirements
 
@@ -45,11 +48,21 @@ Create a source file under `assets/`, for example:
 assets/renderers/plantuml.puml
 ```
 
-Render it locally:
+Render it locally (this fetches and verifies the jar on first run, then
+generates the SVGs):
 
 ```bash
 sh _modules/hugo-mod-plantuml/scripts/render-plantuml.sh .
 ```
+
+Run this **before** `hugo`: the shortcode fails the build if the SVG for a
+referenced source has not been generated.
+
+Tunable environment variables:
+
+- `PLANTUML_JOBS` — number of diagrams to render in parallel (default: CPU count)
+- `PLANTUML_SECURITY_PROFILE` — PlantUML security profile (default: `SECURE`)
+- `PLANTUML_VERSION` / `PLANTUML_SHA256` / `PLANTUML_URL` — pin a different jar
 
 Use the shortcode:
 
@@ -63,13 +76,24 @@ Alias available when needed:
 {{< puml src="renderers/plantuml.puml" alt="PlantUML diagram" />}}
 ```
 
+## Security
+
+Diagrams render under PlantUML's `SECURE` profile by default, and includes are
+restricted to the site's `assets/` tree. This prevents diagram source from
+reading arbitrary local files or reaching the network via `!include` and
+similar directives. Override with `PLANTUML_SECURITY_PROFILE` only if you fully
+trust every diagram source.
+
 ## Output assets
 
-The module publishes or ships:
+The module ships:
 
-- `bin/plantuml.jar`
+- `scripts/fetch-plantuml.sh` (downloads and verifies the MIT jar)
 - `scripts/render-plantuml.sh`
 - shortcode layouts for `plantuml` and `puml`
+
+The PlantUML jar is **not** committed; it is fetched to `bin/plantuml.jar`
+(git-ignored) on first render. See [`VENDORED.md`](VENDORED.md).
 
 ## Development
 
