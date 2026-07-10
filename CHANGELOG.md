@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.2](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.1.1...v0.1.2) (2026-07-10)
+
+
+### Corrections 🐛
+
+* **bash:** Renderer plantuml ([92a2bd9](https://github.com/julienpoirou/hugo-mod-plantuml/commit/92a2bd988e13f3d0efda36504ed44a9cb0090e0b))
+* **ci:** Use non-self-closing shortcode tag in CI test content ([6713d42](https://github.com/julienpoirou/hugo-mod-plantuml/commit/6713d42479655846c391b5ca0761e560f7c88dde))
+* **release:** Use plain GITHUB_TOKEN for release-please ([04e7830](https://github.com/julienpoirou/hugo-mod-plantuml/commit/04e7830e6f0f9ceb1a69533a133441f360583bd3))
+* **render:** Fail the build when a parallel render fails ([b4c9a4b](https://github.com/julienpoirou/hugo-mod-plantuml/commit/b4c9a4b81189abaa38d107edb506c70873a1441a))
+* **render:** Make parallel rendering portable to posix sh ([3966bab](https://github.com/julienpoirou/hugo-mod-plantuml/commit/3966bab6c9fb60341a52e7651128f5e9896b9a2c))
+* **security:** Render under the SECURE plantuml profile ([aba2060](https://github.com/julienpoirou/hugo-mod-plantuml/commit/aba2060f905db167c6e5a0bab1d4e86f4f90fea8))
+* **shortcode:** Fail the build when the rendered SVG is missing ([6619610](https://github.com/julienpoirou/hugo-mod-plantuml/commit/6619610efa5a45d8ef006755aa7d7abda9deecd7))
+
+
+### Performance ⚡
+
+* **render:** Batch every stale diagram into a single JVM invocation ([2202d55](https://github.com/julienpoirou/hugo-mod-plantuml/commit/2202d557ef8fdcb3ac54c313cc4dc516f259222a))
+* **render:** Render diagrams in parallel with xargs -P ([b1a59a1](https://github.com/julienpoirou/hugo-mod-plantuml/commit/b1a59a1145b05ad7911b61a10862dd2a559e4889))
+
 ## [0.1.1](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.1.0...v0.1.1) (2026-03-26)
 
 
