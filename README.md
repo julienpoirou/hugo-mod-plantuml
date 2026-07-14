@@ -40,6 +40,16 @@ Import the module in your Hugo site:
     path = "github.com/julienpoirou/hugo-mod-plantuml"
 ```
 
+Then fetch it:
+
+```bash
+hugo mod get
+```
+
+This adds `github.com/julienpoirou/hugo-mod-plantuml` to your site's `go.mod`,
+which the render command below needs — running it without this step first
+fails with `not a known dependency`.
+
 ## Usage
 
 Create a source file under `assets/`, for example:
