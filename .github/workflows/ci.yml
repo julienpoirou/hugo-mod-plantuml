@@ -32,7 +32,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
 
       - name: Lint PlantUML shell scripts
-        run: shellcheck scripts/render-plantuml.sh scripts/fetch-plantuml.sh
+        run: shellcheck scripts/render.sh scripts/render-plantuml.sh scripts/fetch-plantuml.sh
 
       - name: Build sample site
         shell: bash

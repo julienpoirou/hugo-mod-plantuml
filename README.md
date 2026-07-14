@@ -49,25 +49,31 @@ assets/renderers/plantuml.puml
 ```
 
 Render it locally (this fetches and verifies the jar on first run, then
-generates the SVGs). `render-plantuml.sh` locates its own module directory
-from its own path, so it works from anywhere the module has been copied to
-— it does not need to live at a fixed path like `_modules/hugo-mod-plantuml`
-relative to the site.
-
-The module's own directory in the Go module cache is read-only (Go marks it
-that way to protect the cache), so copy it out somewhere writable first —
-`go mod download` + `go list -m` locate it without a separate `git clone`:
+generates the SVGs) with a single command, run from the site directory:
 
 ```bash
-go mod download github.com/julienpoirou/hugo-mod-plantuml
-WORK_DIR="$(mktemp -d)/hugo-mod-plantuml"
-cp -r "$(go list -m -f '{{.Dir}}' github.com/julienpoirou/hugo-mod-plantuml)" "$WORK_DIR"
-chmod -R u+w "$WORK_DIR"
-sh "$WORK_DIR/scripts/render-plantuml.sh" .
+go mod download github.com/julienpoirou/hugo-mod-plantuml && \
+  sh "$(go list -m -f '{{.Dir}}' github.com/julienpoirou/hugo-mod-plantuml)/scripts/render.sh" .
 ```
 
 Run this **before** `hugo`: the shortcode fails the build if the SVG for a
 referenced source has not been generated.
+
+`scripts/render.sh` is a thin wrapper around `render-plantuml.sh`: the
+module's own directory (as resolved by `go list -m`) is read-only — it's
+still sitting inside Go's module cache, which Go marks that way to protect
+it — so `render.sh` transparently copies the module into a persistent,
+writable cache directory (`${XDG_CACHE_HOME:-$HOME/.cache}/hugo-mod-plantuml`,
+override with `HUGO_MOD_PLANTUML_CACHE`) the first time it's run, then
+delegates to `render-plantuml.sh` from there. The downloaded PlantUML jar
+lives in that same cache directory, so it survives across runs instead of
+being re-fetched every time. If you've copied or cloned the module somewhere
+writable yourself (e.g. while developing the module), `render.sh` detects
+that and skips the caching step, delegating directly.
+
+Both scripts locate their own module directory from their own path — neither
+needs to live at a fixed path like `_modules/hugo-mod-plantuml` relative to
+the site.
 
 All diagrams that need rendering (new or changed since the last run) are
 rendered in a **single JVM invocation**, not one process per file — the
@@ -107,8 +113,11 @@ trust every diagram source.
 
 The module ships:
 
+- `scripts/render.sh` (single-command entry point; caches the module in a
+  writable directory when needed, then delegates below)
+- `scripts/render-plantuml.sh` (renders every stale `.puml`/`.plantuml`/`.uml`
+  found under `assets/`)
 - `scripts/fetch-plantuml.sh` (downloads and verifies the MIT jar)
-- `scripts/render-plantuml.sh`
 - shortcode layouts for `plantuml` and `puml`
 
 The PlantUML jar is **not** committed; it is fetched to `bin/plantuml.jar`
