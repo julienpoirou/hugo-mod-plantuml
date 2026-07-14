@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.1.2...v0.2.0) (2026-07-14)
+
+
+### Features ✨
+
+* **scripts:** Add a single-command wrapper around render-plantuml.sh ([7b761bb](https://github.com/julienpoirou/hugo-mod-plantuml/commit/7b761bb1c43aa34a432116c2927459b188e9b4a7))
+
+
+### Corrections 🐛
+
+* **scripts:** Make render-plantuml.sh locate its own module dir ([7b1b3dc](https://github.com/julienpoirou/hugo-mod-plantuml/commit/7b1b3dc6e772f14c110af8383b368066f925f384))
+
 ## [0.1.2](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.1.1...v0.1.2) (2026-07-10)
 
 
