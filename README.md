@@ -49,10 +49,21 @@ assets/renderers/plantuml.puml
 ```
 
 Render it locally (this fetches and verifies the jar on first run, then
-generates the SVGs):
+generates the SVGs). `render-plantuml.sh` locates its own module directory
+from its own path, so it works from anywhere the module has been copied to
+— it does not need to live at a fixed path like `_modules/hugo-mod-plantuml`
+relative to the site.
+
+The module's own directory in the Go module cache is read-only (Go marks it
+that way to protect the cache), so copy it out somewhere writable first —
+`go mod download` + `go list -m` locate it without a separate `git clone`:
 
 ```bash
-sh _modules/hugo-mod-plantuml/scripts/render-plantuml.sh .
+go mod download github.com/julienpoirou/hugo-mod-plantuml
+WORK_DIR="$(mktemp -d)/hugo-mod-plantuml"
+cp -r "$(go list -m -f '{{.Dir}}' github.com/julienpoirou/hugo-mod-plantuml)" "$WORK_DIR"
+chmod -R u+w "$WORK_DIR"
+sh "$WORK_DIR/scripts/render-plantuml.sh" .
 ```
 
 Run this **before** `hugo`: the shortcode fails the build if the SVG for a

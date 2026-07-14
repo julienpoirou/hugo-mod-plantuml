@@ -2,7 +2,10 @@
 set -eu
 
 SITE_DIR="${1:-/src}"
-MODULE_DIR="${SITE_DIR}/_modules/hugo-mod-plantuml"
+# Self-locate: this script always lives at <module dir>/scripts/render-plantuml.sh,
+# so the module never has to be copied to a specific path (e.g. _modules/hugo-mod-plantuml)
+# relative to the site. Matches the same pattern already used by fetch-plantuml.sh.
+MODULE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ASSETS_DIR="${SITE_DIR}/assets"
 OUT_DIR="${SITE_DIR}/static/generated/plantuml"
 JAR_PATH="${MODULE_DIR}/bin/plantuml.jar"
