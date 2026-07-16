@@ -36,5 +36,5 @@ body:
       label: Scope
       options:
         - label: Affects shortcode API
-        - label: Affects runtime shell/Java pipeline
+        - label: Affects the client-side rendering runtime (glue JS / vendored engine)
         - label: Docs update required

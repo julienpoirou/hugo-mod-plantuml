@@ -5,15 +5,22 @@ Thanks for your interest in **hugo-mod-plantuml**.
 ## Prerequisites
 - Hugo 0.159+
 - Go 1.22+ for Hugo module metadata
-- Java 21+ for local PlantUML rendering
+- Node 22+ (only to run the headless-browser render tests)
+
+Rendering itself needs nothing at build time — the PlantUML engine runs
+client-side in the reader's browser.
 
 ## Getting started
 ```bash
 git clone https://github.com/julienpoirou/hugo-mod-plantuml
 cd hugo-mod-plantuml
+npm ci
+npx playwright install --with-deps chromium
 ```
 
-The main verification runs in GitHub Actions by building a minimal Hugo site that mounts this module and renders SVG locally.
+The main verification runs in GitHub Actions: it builds a minimal Hugo site
+that mounts this module, then drives a real headless browser to confirm the
+shortcodes render to actual `<svg>`.
 
 ## Branches & commits
 - Branch off `main`: `feat/x`, `fix/y`, etc.

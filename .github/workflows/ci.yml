@@ -16,23 +16,12 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-
-      - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
-        with:
-          distribution: temurin
-          java-version: "21"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3
         with:
           hugo-version: "0.159.0"
           extended: true
-
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-
-      - name: Lint PlantUML shell scripts
-        run: shellcheck scripts/render.sh scripts/render-plantuml.sh scripts/fetch-plantuml.sh
 
       - name: Build sample site
         shell: bash
@@ -40,7 +29,7 @@ jobs:
           set -euo pipefail
           SITE_DIR="${RUNNER_TEMP}/site"
           OUT_DIR="${RUNNER_TEMP}/public"
-          mkdir -p "${SITE_DIR}/content" "${SITE_DIR}/assets" "${SITE_DIR}/static" "${SITE_DIR}/layouts/_default" "${SITE_DIR}/_modules"
+          mkdir -p "${SITE_DIR}/content" "${SITE_DIR}/assets/renderers" "${SITE_DIR}/static" "${SITE_DIR}/layouts/_default" "${SITE_DIR}/_modules"
           ln -s "${GITHUB_WORKSPACE}" "${SITE_DIR}/_modules/hugo-mod-plantuml"
 
           cat > "${SITE_DIR}/layouts/_default/single.html" <<'EOF'
@@ -71,110 +60,98 @@ jobs:
             [[module.mounts]]
               source = "_modules/hugo-mod-plantuml/layouts"
               target = "layouts"
+            [[module.mounts]]
+              source = "_modules/hugo-mod-plantuml/assets"
+              target = "assets"
           EOF
 
-          cat > "${SITE_DIR}/assets/diagram.puml" <<'EOF'
+          cat > "${SITE_DIR}/assets/renderers/plantuml.puml" <<'EOF'
           @startuml
-          Alice -> Bob: Hello
+          Alice -> Bob : Hello
+          return ok
           @enduml
           EOF
 
-          cat > "${SITE_DIR}/content/test.md" <<'EOF'
+          B64_SOURCE=$(printf '@startuml\nX -> Y\n@enduml' | base64 -w0)
+
+          cat > "${SITE_DIR}/content/test.md" <<EOF
           ---
           title: "PlantUML test"
           ---
 
-          {{< plantuml src="diagram.puml" alt="PlantUML CI diagram" >}}
+          {{< plantuml >}}
+          @startuml
+          "Début" -> "École n°1"
+          @enduml
+          {{< /plantuml >}}
 
-          {{< puml src="diagram.puml" alt="alias" >}}
+          {{< plantuml src="renderers/plantuml.puml" />}}
+
+          {{< puml b64="${B64_SOURCE}" dark="true" />}}
           EOF
-
-          MODULE_DIR="${SITE_DIR}/_modules/hugo-mod-plantuml"
-
-          # The jar is not vendored: it must not be present before fetching.
-          test ! -f "${MODULE_DIR}/bin/plantuml.jar"
-
-          # Before rendering, the shortcode must fail the build (no SVG yet).
-          if hugo --source "${SITE_DIR}" --destination "${RUNNER_TEMP}/public-missing"; then
-            echo "expected the build to fail before the SVG is rendered" >&2
-            exit 1
-          fi
-
-          # Rendering fetches and verifies the jar, then produces the SVG.
-          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
-          test -f "${MODULE_DIR}/bin/plantuml.jar"
-          test -f "${SITE_DIR}/static/generated/plantuml/diagram.svg"
-          grep -q '<svg' "${SITE_DIR}/static/generated/plantuml/diagram.svg"
 
           hugo --source "${SITE_DIR}" --destination "${OUT_DIR}"
-          grep -q '/generated/plantuml/diagram.svg' "${OUT_DIR}/test/index.html"
+          PAGE="${OUT_DIR}/test/index.html"
 
-          # The SECURE profile must block a local !include: the render fails and
-          # leaves no output for the malicious source.
-          cat > "${SITE_DIR}/assets/evil.puml" <<'EOF'
-          @startuml
-          !include /etc/hostname
-          Alice -> Bob
-          @enduml
+          # Assets are fingerprinted (cache-busting) and injected only once
+          # for the whole page.
+          grep -oE 'libs/hugo-mod-plantuml/hugo-mod-plantuml\.[0-9a-f]+\.js' "${PAGE}"
+          test "$(grep -oE 'libs/hugo-mod-plantuml/hugo-mod-plantuml\.[0-9a-f]+\.js' "${PAGE}" | wc -l)" -eq 1
+
+          # The four injected assets (viz-global, engine modulepreload, css,
+          # glue) each ship a matching Subresource Integrity hash.
+          test "$(grep -c 'integrity="sha256-' "${PAGE}")" -eq 4
+
+          # The engine is preloaded as an ES module.
+          grep -qE 'rel="modulepreload" href="[^"]*libs/hugo-mod-plantuml/plantuml\.[0-9a-f]+\.js"' "${PAGE}"
+
+          # The fingerprinted files are actually published at their paths.
+          JS_PATH=$(grep -oE 'libs/hugo-mod-plantuml/hugo-mod-plantuml\.[0-9a-f]+\.js' "${PAGE}" | head -1)
+          test -f "${OUT_DIR}/${JS_PATH}"
+          ENGINE_PATH=$(grep -oE 'libs/hugo-mod-plantuml/plantuml\.[0-9a-f]+\.js' "${PAGE}" | head -1)
+          test -f "${OUT_DIR}/${ENGINE_PATH}"
+
+          # All three input modes produce a wrapper.
+          test "$(grep -c 'data-hugo-mod-plantuml' "${PAGE}")" -eq 3
+
+          # The dark-mode wrapper carries the flag.
+          test "$(grep -c 'data-dark="true"' "${PAGE}")" -eq 1
+
+          # Inline UTF-8 source survives the base64 round-trip untouched.
+          # Hugo may escape characters in attributes; browsers unescape them,
+          # so undo the one escape our source can trigger before decoding.
+          grep -o 'data-source="[^"]*"' "${PAGE}" | sed -n '1p' \
+            | sed 's/data-source="//;s/"$//;s/&#43;/+/g' | base64 -d \
+            | grep -q "École n°1"
+
+          # An empty source must fail the build explicitly.
+          cat > "${SITE_DIR}/content/invalid.md" <<'EOF'
+          ---
+          title: "invalid"
+          ---
+
+          {{< plantuml >}}
+          {{< /plantuml >}}
           EOF
-          if sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"; then
-            echo "expected the SECURE profile to reject a local !include" >&2
-            exit 1
-          fi
-          test ! -f "${SITE_DIR}/static/generated/plantuml/evil.svg"
-          rm "${SITE_DIR}/assets/evil.puml"
-
-      - name: Batch rendering (single JVM for N diagrams)
-        shell: bash
-        run: |
-          set -euo pipefail
-          SITE_DIR="${RUNNER_TEMP}/site"
-          MODULE_DIR="${SITE_DIR}/_modules/hugo-mod-plantuml"
-
-          for i in 1 2 3; do
-            printf '@startuml\nA%s -> B%s\n@enduml\n' "${i}" "${i}" > "${SITE_DIR}/assets/batch-${i}.puml"
-          done
-          mkdir -p "${SITE_DIR}/assets/sub"
-          printf '@startuml\nX -> "École n°1"\n@enduml\n' > "${SITE_DIR}/assets/sub/nested.puml"
-
-          # A single render-plantuml.sh call must render every new (stale)
-          # diagram, mirroring subdirectories and preserving utf-8 labels.
-          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
-          for i in 1 2 3; do
-            test -f "${SITE_DIR}/static/generated/plantuml/batch-${i}.svg"
-          done
-          test -f "${SITE_DIR}/static/generated/plantuml/sub/nested.svg"
-          # PlantUML XML-entity-encodes accented/special characters in SVG
-          # text (e.g. É -> &#201;), so check the ascii-safe substring that
-          # survives either representation rather than the literal utf-8 form.
-          grep -q 'cole n' "${SITE_DIR}/static/generated/plantuml/sub/nested.svg"
-
-          # No beside-source .svg is left next to the .puml sources: every
-          # rendered output is moved into static/generated/plantuml/**.
-          test -z "$(find "${SITE_DIR}/assets" -name '*.svg')"
-
-          # Incremental: a second run must render nothing (nothing is stale).
-          if [ -n "$(sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}")" ]; then
-            echo "expected the second run to skip diagrams that are up to date" >&2
+          if hugo --source "${SITE_DIR}" --destination "${RUNNER_TEMP}/public-invalid"; then
+            echo "expected the build to fail on an empty shortcode source" >&2
             exit 1
           fi
 
-          # All-or-nothing batch semantics: if one diagram in the same batch
-          # is invalid, none of that batch's outputs are published, not even
-          # for the sibling diagram that would have rendered fine. PlantUML's
-          # batch mode gives no reliable per-file exit status, so a single
-          # JVM invocation for N files fails (or succeeds) as a unit.
-          printf '@startuml\nQ -> R\n@enduml\n' > "${SITE_DIR}/assets/batch-good.puml"
-          printf '@startuml\nnot valid syntax !!! [[[\n@enduml\n' > "${SITE_DIR}/assets/batch-bad.puml"
-          if sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"; then
-            echo "expected the batch to fail when one diagram is invalid" >&2
-            exit 1
-          fi
-          test ! -f "${SITE_DIR}/static/generated/plantuml/batch-good.svg"
-          test ! -f "${SITE_DIR}/static/generated/plantuml/batch-bad.svg"
-          test -z "$(find "${SITE_DIR}/assets" -name '*.svg')"
+          # Remove the intentionally-invalid page so it does not break the
+          # full-site build the browser verification consumes.
+          rm -f "${SITE_DIR}/content/invalid.md"
+          hugo --source "${SITE_DIR}" --destination "${OUT_DIR}"
 
-          # Removing the invalid sibling lets the good diagram publish on retry.
-          rm "${SITE_DIR}/assets/batch-bad.puml"
-          sh "${MODULE_DIR}/scripts/render-plantuml.sh" "${SITE_DIR}"
-          test -f "${SITE_DIR}/static/generated/plantuml/batch-good.svg"
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: "22"
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify real rendering in a headless browser
+        run: node tests/verify-render.js "${RUNNER_TEMP}/public" "test/"

@@ -4,35 +4,31 @@
 [![CodeQL](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/codeql.yml/badge.svg)](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/julienpoirou/hugo-mod-plantuml?include_prereleases&sort=semver)](https://github.com/julienpoirou/hugo-mod-plantuml/releases)
 [![Hugo Module](https://img.shields.io/badge/Hugo-Module-FF4088?logo=hugo&logoColor=white)](https://gohugo.io/hugo-modules/)
-[![Java 21+](https://img.shields.io/badge/Java-21%2B-E76F00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196.svg)](https://www.conventionalcommits.org)
 
 <p align="center">
   <img src="./logo.svg" alt="hugo-mod-plantuml logo" width="160" height="160">
 </p>
 
-Standalone Hugo module for local PlantUML rendering with Java, without Kroki or any remote rendering service. The MIT-licensed PlantUML jar is fetched on demand and checksum-verified rather than vendored.
+Standalone Hugo module for PlantUML rendering with vendored TeaVM, PlantUML, and Viz assets.
 
 ## Features
 
-- Render diagrams with `{{< plantuml src="..." >}}`
-- Ship a local `render-plantuml.sh` pipeline for SVG generation
-- Fetch the MIT-licensed PlantUML jar on demand, verified against a pinned SHA-256
-- Render under the `SECURE` PlantUML security profile by default
-- Render diagrams in parallel across CPU cores
-- Work without external PlantUML servers
-- Mirror `assets/**/*.puml` to `static/generated/plantuml/**/*.svg`
-- Fail explicitly at build time when `src` is missing or the SVG was not rendered
+- Render diagrams with `{{< plantuml >}}`
+- 100% client-side: works with `hugo server` live reload, static hosts, and offline
+- Vendored, fingerprinted assets served with Subresource Integrity (SRI)
+- Lazy rendering: each diagram is rendered only as it approaches the viewport (`IntersectionObserver`)
+- Light and dark output (`dark="true"`)
+- Three source inputs: inline content, `src="…"` (from `assets/`), or pre-encoded `b64="…"`
 
 ## Requirements
 
 - Hugo `>= 0.124`
-- Java `21+`
 - A Hugo site with Hugo Modules enabled
 
 ## Installation
 
-Import the module in your Hugo site:
+Import the module in your Hugo site config:
 
 ```toml
 [module]
@@ -40,111 +36,110 @@ Import the module in your Hugo site:
     path = "github.com/julienpoirou/hugo-mod-plantuml"
 ```
 
-Then fetch it:
-
-```bash
-hugo mod get
-```
-
-This adds `github.com/julienpoirou/hugo-mod-plantuml` to your site's `go.mod`,
-which the render command below needs — running it without this step first
-fails with `not a known dependency`.
-
 ## Usage
 
-Create a source file under `assets/`, for example:
+Inline source:
 
 ```text
-assets/renderers/plantuml.puml
+{{< plantuml >}}
+@startuml
+Alice -> Bob : Hello
+return ok
+@enduml
+{{< /plantuml >}}
 ```
 
-Render it locally (this fetches and verifies the jar on first run, then
-generates the SVGs) with a single command, run from the site directory:
-
-```bash
-go mod download github.com/julienpoirou/hugo-mod-plantuml && \
-  sh "$(go list -m -f '{{.Dir}}' github.com/julienpoirou/hugo-mod-plantuml)/scripts/render.sh" .
-```
-
-Run this **before** `hugo`: the shortcode fails the build if the SVG for a
-referenced source has not been generated.
-
-`scripts/render.sh` is a thin wrapper around `render-plantuml.sh`: the
-module's own directory (as resolved by `go list -m`) is read-only — it's
-still sitting inside Go's module cache, which Go marks that way to protect
-it — so `render.sh` transparently copies the module into a persistent,
-writable cache directory (`${XDG_CACHE_HOME:-$HOME/.cache}/hugo-mod-plantuml`,
-override with `HUGO_MOD_PLANTUML_CACHE`) the first time it's run, then
-delegates to `render-plantuml.sh` from there. The downloaded PlantUML jar
-lives in that same cache directory, so it survives across runs instead of
-being re-fetched every time. If you've copied or cloned the module somewhere
-writable yourself (e.g. while developing the module), `render.sh` detects
-that and skips the caching step, delegating directly.
-
-Both scripts locate their own module directory from their own path — neither
-needs to live at a fixed path like `_modules/hugo-mod-plantuml` relative to
-the site.
-
-All diagrams that need rendering (new or changed since the last run) are
-rendered in a **single JVM invocation**, not one process per file — the
-dominant cost of running PlantUML from the CLI is JVM startup, so batching
-avoids paying it once per diagram. This means the diagrams in a given run
-succeed or fail **as a unit**: PlantUML's batch mode does not report which
-specific file failed, so if any diagram in the batch is invalid, none of
-that batch's outputs are published (already-published diagrams from a prior
-successful run are untouched). Fix or remove the invalid source and rerun.
-
-Tunable environment variables:
-
-- `PLANTUML_SECURITY_PROFILE` — PlantUML security profile (default: `SECURE`)
-- `PLANTUML_VERSION` / `PLANTUML_SHA256` / `PLANTUML_URL` — pin a different jar
-
-Use the shortcode:
+File source:
 
 ```text
-{{< plantuml src="renderers/plantuml.puml" alt="PlantUML diagram" >}}
+{{< plantuml src="renderers/plantuml.puml" />}}
 ```
 
-Alias available when needed:
+Dark mode:
 
 ```text
-{{< puml src="renderers/plantuml.puml" alt="PlantUML diagram" >}}
+{{< plantuml dark="true" >}}
+@startuml
+class Foo
+class Bar
+Foo --> Bar
+@enduml
+{{< /plantuml >}}
 ```
+
+Pre-encoded base64 (useful when generating content programmatically):
+
+```text
+{{< plantuml b64="QHN0YXJ0dW1sCkFsaWNlIC0+IEJvYgpAZW5kdW1s" />}}
+```
+
+The `puml` shortcode is a drop-in alias for `plantuml` and accepts the same parameters.
+
+### Parameters
+
+| Param | Applies to | Description |
+|---|---|---|
+| inner content | `{{< plantuml >}} … {{< /plantuml >}}` | Raw PlantUML source |
+| `src` | self-closing | Path (relative to `assets/`) of a `.puml`/`.plantuml`/`.uml` file to read |
+| `b64` | self-closing | Base64-encoded PlantUML source |
+| `dark` | both | `true`/`1`/`yes` to render a dark-mode SVG |
+| `class` | both | Extra CSS class added to the wrapper |
+
+## How it works
+
+Each page that uses the shortcode injects, once:
+
+- `viz-global.js` — the Graphviz layout engine (classic script, SRI)
+- `plantuml.js` — the PlantUML engine (ES module, `modulepreload` + SRI)
+- `hugo-mod-plantuml.js` — the first-party glue (classic script, SRI)
+- `hugo-mod-plantuml.css` — minimal styling (SRI)
+
+Every diagram becomes a `data-hugo-mod-plantuml` wrapper carrying its source
+as base64 (so Hugo never mangles the PlantUML text). The glue lazily renders
+each wrapper as it nears the viewport. Because the TeaVM engine keeps shared
+internal state, renders on a page are **serialized** — one diagram finishes
+before the next begins — so multiple diagrams on one page never clobber each
+other.
 
 ## Security
 
-Diagrams render under PlantUML's `SECURE` profile by default, and includes are
-restricted to the site's `assets/` tree. This prevents diagram source from
-reading arbitrary local files or reaching the network via `!include` and
-similar directives. Override with `PLANTUML_SECURITY_PROFILE` only if you fully
-trust every diagram source.
+Rendering happens in the reader's browser sandbox; no diagram source touches
+your build server or any third-party service. PlantUML preprocessor
+directives that reach the local filesystem or network (`!include` of a URL,
+etc.) are constrained by the browser's same-origin and CSP policies rather
+than a PlantUML security profile — review untrusted diagram source as you
+would any other user-supplied HTML/JS on your site.
 
 ## Output assets
 
 The module ships:
 
-- `scripts/render.sh` (single-command entry point; caches the module in a
-  writable directory when needed, then delegates below)
-- `scripts/render-plantuml.sh` (renders every stale `.puml`/`.plantuml`/`.uml`
-  found under `assets/`)
-- `scripts/fetch-plantuml.sh` (downloads and verifies the MIT jar)
+- `assets/libs/hugo-mod-plantuml/plantuml.js` (TeaVM PlantUML engine)
+- `assets/libs/hugo-mod-plantuml/viz-global.js` (Viz.js / Graphviz layout)
+- `assets/libs/hugo-mod-plantuml/hugo-mod-plantuml.js` (first-party glue)
+- `assets/libs/hugo-mod-plantuml/hugo-mod-plantuml.css`
+- `layouts/partials/hugo-mod-plantuml/render.html` (shared renderer)
 - shortcode layouts for `plantuml` and `puml`
 
-The PlantUML jar is **not** committed; it is fetched to `bin/plantuml.jar`
-(git-ignored) on first render. See [`VENDORED.md`](VENDORED.md).
+See [`VENDORED.md`](VENDORED.md) for provenance and checksums, and
+[`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) for licenses.
 
 ## Development
 
 ```bash
 git clone https://github.com/julienpoirou/hugo-mod-plantuml
 cd hugo-mod-plantuml
+npm ci
+npx playwright install --with-deps chromium
 ```
 
-The main verification is handled by GitHub Actions with Java enabled, a minimal Hugo site, and a local SVG render step before the Hugo build.
+CI builds a minimal Hugo site with the shortcodes, then verifies in a real
+headless browser that the diagrams render to actual `<svg>` (not just that
+Hugo emitted the right tags).
 
 ## Contributing
 
 - Use Conventional Commits for branch history
 - Update docs or changelog when behavior changes
-- Keep shell and Java pipeline changes reproducible in CI
+- Keep PlantUML examples valid across current Mermaid runtime versions
 - See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for contribution guidance

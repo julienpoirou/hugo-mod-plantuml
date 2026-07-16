@@ -34,11 +34,10 @@ body:
     id: env
     attributes:
       label: Environment
-      description: OS, Hugo version, Java version, browser, module version
+      description: OS, Hugo version, browser (name + version), module version
       placeholder: |
         - OS:
         - Hugo:
-        - Java:
         - Browser:
         - Module version:
     validations:

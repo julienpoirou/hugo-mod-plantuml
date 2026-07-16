@@ -5,6 +5,3 @@
 .hugo_build.lock
 public/
 resources/
-
-# PlantUML jar is fetched on demand, never committed (see scripts/fetch-plantuml.sh)
-bin/*.jar
