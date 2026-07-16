@@ -1,0 +1,12 @@
+{
+  "name": "hugo-mod-plantuml-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Headless-browser render verification for CI. Not published, not a runtime dependency of the Hugo module.",
+  "scripts": {
+    "verify": "node tests/verify-render.js"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1"
+  }
+}
