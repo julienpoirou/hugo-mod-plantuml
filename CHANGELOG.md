@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.0...v0.2.1) (2026-07-16)
+
+
+### Corrections 🐛
+
+* **shortcodes:** Replace Java pipeline with browser check ([b01d3cc](https://github.com/julienpoirou/hugo-mod-plantuml/commit/b01d3ccc26b1dafc1228802337885985a4d6bca9))
+
 ## [0.2.0](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.1.2...v0.2.0) (2026-07-14)
 
 
