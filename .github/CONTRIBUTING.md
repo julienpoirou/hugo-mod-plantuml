@@ -7,7 +7,7 @@ Thanks for your interest in **hugo-mod-plantuml**.
 - Go 1.22+ for Hugo module metadata
 - Node 22+ (only to run the headless-browser render tests)
 
-Rendering itself needs nothing at build time — the PlantUML engine runs
+Rendering itself needs nothing at build time, the PlantUML engine runs
 client-side in the reader's browser.
 
 ## Getting started

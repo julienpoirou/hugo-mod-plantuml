@@ -2,43 +2,51 @@
 
 [![CI](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/codeql.yml/badge.svg)](https://github.com/julienpoirou/hugo-mod-plantuml/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/julienpoirou/hugo-mod-plantuml/badge)](https://scorecard.dev/viewer/?uri=github.com/julienpoirou/hugo-mod-plantuml)
 [![Release](https://img.shields.io/github/v/release/julienpoirou/hugo-mod-plantuml?include_prereleases&sort=semver)](https://github.com/julienpoirou/hugo-mod-plantuml/releases)
 [![Hugo Module](https://img.shields.io/badge/Hugo-Module-FF4088?logo=hugo&logoColor=white)](https://gohugo.io/hugo-modules/)
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196.svg)](https://www.conventionalcommits.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center">
   <img src="./logo.svg" alt="hugo-mod-plantuml logo" width="160" height="160">
 </p>
 
-Standalone Hugo module for PlantUML rendering with vendored TeaVM, PlantUML, and Viz assets.
+<p align="center">
+  <strong>PlantUML diagrams in your Hugo pages.</strong><br>
+  100% client-side, no PlantUML server, no third-party service, works offline.
+</p>
 
-## Features
+## Requires
 
-- Render diagrams with `{{< plantuml >}}`
-- 100% client-side: works with `hugo server` live reload, static hosts, and offline
-- Vendored, fingerprinted assets served with Subresource Integrity (SRI)
-- Lazy rendering: each diagram is rendered only as it approaches the viewport (`IntersectionObserver`)
-- Light and dark output (`dark="true"`)
-- Three source inputs: inline content, `src="…"` (from `assets/`), or pre-encoded `b64="…"`
+- Hugo >= `0.124`. The extended edition is not required.
 
-## Requirements
+## Install
 
-- Hugo `>= 0.124`
-- A Hugo site with Hugo Modules enabled
+**Binary** - Hugo and Go installed locally:
 
-## Installation
-
-Import the module in your Hugo site config:
+```bash
+hugo mod init example.com/my-site
+hugo mod get github.com/julienpoirou/hugo-mod-plantuml
+```
 
 ```toml
+# hugo.toml
 [module]
   [[module.imports]]
     path = "github.com/julienpoirou/hugo-mod-plantuml"
 ```
 
+**Container** - Docker installed locally:
+
+```bash
+alias hugo='docker run --rm -v "$PWD":/src -p 1313:1313 hugomods/hugo:go-git hugo'
+hugo mod init example.com/my-site
+hugo mod get github.com/julienpoirou/hugo-mod-plantuml
+```
+
 ## Usage
 
-Inline source:
+**Shortcode** - Raw diagram source between the tags:
 
 ```text
 {{< plantuml >}}
@@ -49,97 +57,64 @@ return ok
 {{< /plantuml >}}
 ```
 
-File source:
+**Self-closing shortcode** - Source read from a file, optionally in dark mode:
 
 ```text
 {{< plantuml src="renderers/plantuml.puml" />}}
+{{< plantuml dark="true" src="renderers/plantuml.puml" />}}
 ```
 
-Dark mode:
-
-```text
-{{< plantuml dark="true" >}}
-@startuml
-class Foo
-class Bar
-Foo --> Bar
-@enduml
-{{< /plantuml >}}
-```
-
-Pre-encoded base64 (useful when generating content programmatically):
+**Self-closing shortcode** - Source passed as base64:
 
 ```text
 {{< plantuml b64="QHN0YXJ0dW1sCkFsaWNlIC0+IEJvYgpAZW5kdW1s" />}}
 ```
 
-The `puml` shortcode is a drop-in alias for `plantuml` and accepts the same parameters.
+> `puml` is a drop-in alias for `plantuml` and takes the same parameters.
 
 ### Parameters
 
-| Param | Applies to | Description |
+| Param | Default | Description |
 |---|---|---|
-| inner content | `{{< plantuml >}} … {{< /plantuml >}}` | Raw PlantUML source |
-| `src` | self-closing | Path (relative to `assets/`) of a `.puml`/`.plantuml`/`.uml` file to read |
-| `b64` | self-closing | Base64-encoded PlantUML source |
-| `dark` | both | `true`/`1`/`yes` to render a dark-mode SVG |
-| `class` | both | Extra CSS class added to the wrapper |
+| inner content | - | Raw diagram source between the opening and closing tags |
+| `src` | - | Path, relative to `assets/`, of a `.puml`/`.plantuml`/`.uml` file |
+| `b64` | - | Base64-encoded diagram source |
+| `dark` | `false` | `true`, `1` or `yes` to render a dark-mode SVG |
+| `class` | *(none)* | Extra CSS class added to the wrapper |
 
-## How it works
+> At least one source input is required. If several are given, `b64` wins over `src`, and `src` wins over the inner content, the others are ignored silently.
 
-Each page that uses the shortcode injects, once:
+> A missing or empty source fails the build with an explicit error rather than emitting a blank page. A syntax error in the diagram is not caught at build time: it surfaces at render time, as PlantUML's message in place of the diagram.
 
-- `viz-global.js` — the Graphviz layout engine (classic script, SRI)
-- `plantuml.js` — the PlantUML engine (ES module, `modulepreload` + SRI)
-- `hugo-mod-plantuml.js` — the first-party glue (classic script, SRI)
-- `hugo-mod-plantuml.css` — minimal styling (SRI)
-
-Every diagram becomes a `data-hugo-mod-plantuml` wrapper carrying its source
-as base64 (so Hugo never mangles the PlantUML text). The glue lazily renders
-each wrapper as it nears the viewport. Because the TeaVM engine keeps shared
-internal state, renders on a page are **serialized** — one diagram finishes
-before the next begins — so multiple diagrams on one page never clobber each
-other.
+> `src` is resolved with `readFile` from the project root, so the file must live in your own site's `assets/`. A file mounted from a theme or from another module will not be found.
 
 ## Security
 
-Rendering happens in the reader's browser sandbox; no diagram source touches
-your build server or any third-party service. PlantUML preprocessor
-directives that reach the local filesystem or network (`!include` of a URL,
-etc.) are constrained by the browser's same-origin and CSP policies rather
-than a PlantUML security profile — review untrusted diagram source as you
-would any other user-supplied HTML/JS on your site.
+Being fully client-side, no diagram source ever touches your build server or any external service. PlantUML preprocessor directives that reach the filesystem or the network (`!include` of a URL, and the like) are constrained by the browser's same-origin and Content-Security-Policy rules, not by a PlantUML security profile. Review untrusted diagram source as you would any other user-supplied content.
 
-## Output assets
+## Rendering
 
-The module ships:
+Each diagram is rendered in the reader's browser, to inline `<svg>`, by the PlantUML engine compiled to JavaScript.
 
-- `assets/libs/hugo-mod-plantuml/plantuml.js` (TeaVM PlantUML engine)
-- `assets/libs/hugo-mod-plantuml/viz-global.js` (Viz.js / Graphviz layout)
-- `assets/libs/hugo-mod-plantuml/hugo-mod-plantuml.js` (first-party glue)
-- `assets/libs/hugo-mod-plantuml/hugo-mod-plantuml.css`
-- `layouts/partials/hugo-mod-plantuml/render.html` (shared renderer)
-- shortcode layouts for `plantuml` and `puml`
+- The Graphviz layout engine (`viz-global.js`), the stylesheet and the glue are injected once per page, at the first shortcode, in the flow of the content, not in `<head>`. Each one is fingerprinted and carries a Subresource Integrity hash.
+- The PlantUML engine is an ES module: it is announced with `modulepreload`, then imported dynamically and memoised, so it downloads and initializes once per page however many diagrams are present.
+- Rendering is lazy: each diagram starts as it approaches the viewport, with a 200px margin. Browsers without `IntersectionObserver` render everything immediately instead.
+- The engine keeps shared internal state across calls, so renders on a page are serialized: one diagram finishes before the next starts, and two diagrams entering the viewport together never clobber each other.
+- Everything runs in the browser, so it works with `hugo server` live reload, on any static host, and offline.
+- For diagrams injected after page load, call `window.HugoModPlantUML.observeAll(root)` for lazy rendering, or `renderAll(root)` to render immediately.
+- Without JavaScript the shortcode leaves an empty block: there is no server-side fallback.
 
-See [`VENDORED.md`](VENDORED.md) for provenance and checksums, and
-[`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) for licenses.
+## Vendored assets
 
-## Development
+The whole rendering stack ships inside the module, no CDN, no PlantUML server, no third-party request at page load:
 
-```bash
-git clone https://github.com/julienpoirou/hugo-mod-plantuml
-cd hugo-mod-plantuml
-npm ci
-npx playwright install --with-deps chromium
-```
+| File | What it is | Size | License |
+|---|---|---|---|
+| `plantuml.js` | The PlantUML engine, compiled to JavaScript with TeaVM | 6.9 MB | MIT |
+| `viz-global.js` | Viz.js / Graphviz, the layout engine PlantUML calls for dot-based diagrams | 1.4 MB | MIT |
 
-CI builds a minimal Hugo site with the shortcodes, then verifies in a real
-headless browser that the diagrams render to actual `<svg>` (not just that
-Hugo emitted the right tags).
+Full license texts are in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md), upstream provenance and checksums in [VENDORED.md](VENDORED.md).
 
-## Contributing
+## License
 
-- Use Conventional Commits for branch history
-- Update docs or changelog when behavior changes
-- Keep PlantUML examples valid across current Mermaid runtime versions
-- See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for contribution guidance
+MIT © 2025 [Julien Poirou](mailto:julienpoirou@protonmail.com)

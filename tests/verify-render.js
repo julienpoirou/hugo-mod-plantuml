@@ -1,5 +1,5 @@
 // Verifies, in a real headless browser, that the shortcode's runtime
-// actually renders — not just that Hugo emitted the right HTML/script tags
+// actually renders, not just that Hugo emitted the right HTML/script tags
 // (which is all the shell-based CI assertions can check).
 "use strict";
 
