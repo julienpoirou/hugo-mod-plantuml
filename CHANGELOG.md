@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.2...v0.2.3) (2026-08-09)
+
+
+### Corrections 🐛
+
+* **security:** Uncontrolled data used in path expression ([#19](https://github.com/julienpoirou/hugo-mod-plantuml/issues/19)) ([5f51bb7](https://github.com/julienpoirou/hugo-mod-plantuml/commit/5f51bb74b9f6023e70a619e943ed62967e4b2782))
+
 ## [0.2.2](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.1...v0.2.2) (2026-08-09)
 
 
