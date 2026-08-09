@@ -19,19 +19,39 @@ const CONTENT_TYPES = {
 };
 
 function serve(rootDir, port) {
-  const resolvedRoot = path.resolve(rootDir);
+  // realpath on the root too: otherwise the containment check below fails
+  // whenever a parent directory is itself a symlink (e.g. /tmp on macOS).
+  const resolvedRoot = fs.realpathSync(path.resolve(rootDir));
   const server = http.createServer((req, res) => {
-    const urlPath = decodeURIComponent(req.url.split("?")[0]);
-    let filePath = path.join(resolvedRoot, urlPath);
-    if (urlPath.endsWith("/")) {
-      filePath = path.join(filePath, "index.html");
-    }
-    const resolvedPath = path.resolve(filePath);
-    if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + path.sep)) {
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent(req.url.split("?")[0]);
+    } catch {
       res.writeHead(400);
       res.end("bad request");
       return;
     }
+    let filePath = path.join(resolvedRoot, urlPath);
+    if (urlPath.endsWith("/")) {
+      filePath = path.join(filePath, "index.html");
+    }
+
+    // Normalises and resolves symlinks, so a link inside the root cannot
+    // point outside it. Throws ENOENT for a missing file, hence the 404.
+    let resolvedPath;
+    try {
+      resolvedPath = fs.realpathSync(filePath);
+    } catch {
+      res.writeHead(404);
+      res.end("not found");
+      return;
+    }
+    if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + path.sep)) {
+      res.writeHead(403);
+      res.end("forbidden");
+      return;
+    }
+
     fs.readFile(resolvedPath, (error, data) => {
       if (error) {
         res.writeHead(404);
