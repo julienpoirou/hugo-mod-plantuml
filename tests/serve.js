@@ -31,8 +31,22 @@ function serve(rootDir, port) {
       res.end("bad request");
       return;
     }
-    let filePath = path.join(resolvedRoot, urlPath);
-    if (urlPath.endsWith("/")) {
+
+    const normalizedUrlPath = path.posix.normalize(urlPath);
+    const hasTraversal = normalizedUrlPath.split("/").includes("..");
+    if (
+      !normalizedUrlPath.startsWith("/") ||
+      normalizedUrlPath.includes("\0") ||
+      normalizedUrlPath.includes("\\") ||
+      hasTraversal
+    ) {
+      res.writeHead(403);
+      res.end("forbidden");
+      return;
+    }
+
+    let filePath = path.join(resolvedRoot, normalizedUrlPath);
+    if (normalizedUrlPath.endsWith("/")) {
       filePath = path.join(filePath, "index.html");
     }
 
