@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.1...v0.2.2) (2026-08-09)
+
+
+### Corrections 🐛
+
+* **security:** Resolve symlinks before the served-path root check ([03886eb](https://github.com/julienpoirou/hugo-mod-plantuml/commit/03886ebd5de5c6bdd6e888dd8cd48fb97233080c))
+
 ## [0.2.1](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.0...v0.2.1) (2026-07-16)
 
 
