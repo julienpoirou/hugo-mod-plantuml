@@ -7,9 +7,9 @@ All files live in `assets/libs/hugo-mod-plantuml/`.
 | File | Library | Version | License | SHA-256 |
 |---|---|---|---|---|
 | `plantuml.js` | [PlantUML](https://github.com/plantuml/plantuml), compiled to JavaScript with TeaVM | 1.2026.6 | MIT | `48bf2790629d84a3573a109c305acc3eee84f69cbb5c11cd93395a018c1fe3b2` |
-| `viz-global.js` | [Viz.js](https://github.com/mdaines/viz-js) (Graphviz, the layout engine PlantUML calls for dot-based diagrams) | 3.24.0 | MIT | `ef2cd8a08b5cf8b65e3634131052b41870ff30bb6fb23e23a87fd09d44666cba` |
+| `viz-global.js` | [Viz.js](https://github.com/mdaines/viz-js) (Graphviz, the layout engine PlantUML calls for dot-based diagrams) | 3.29.0 | MIT | `d94405c431c23f674e740f042514231e559d60fffc93dc557b22fafc295fbbc0` |
 
-Source for `viz-global.js`: `https://cdn.jsdelivr.net/npm/@viz-js/viz@3.24.0/dist/viz-global.js`
+Source for `viz-global.js`: `https://cdn.jsdelivr.net/npm/@viz-js/viz@3.29.0/dist/viz-global.js`
 
 Source for `plantuml.js`: the `plantuml.js` entry of `https://github.com/plantuml/plantuml/releases/download/v1.2026.6/js-plantuml-1.2026.6.zip`
 
