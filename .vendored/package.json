@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Declares the third-party libraries this module vendors under assets/libs/. Never installed at build time or at runtime: it exists so Dependabot tracks their versions and GitHub raises security alerts on the code we actually ship. See ../VENDORED.md.",
   "dependencies": {
-    "@viz-js/viz": "3.24.0"
+    "@viz-js/viz": "3.29.0"
   },
   "vendored": {
     "viz-global.js": {
