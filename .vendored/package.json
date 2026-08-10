@@ -1,0 +1,25 @@
+{
+  "name": "hugo-mod-plantuml-vendored",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Declares the third-party libraries this module vendors under assets/libs/. Never installed at build time or at runtime: it exists so Dependabot tracks their versions and GitHub raises security alerts on the code we actually ship. See ../VENDORED.md.",
+  "dependencies": {
+    "@viz-js/viz": "3.24.0"
+  },
+  "vendored": {
+    "viz-global.js": {
+      "path": "assets/libs/hugo-mod-plantuml/viz-global.js",
+      "package": "@viz-js/viz",
+      "source": "https://cdn.jsdelivr.net/npm/@viz-js/viz@{version}/dist/viz-global.js",
+      "sha256": "ef2cd8a08b5cf8b65e3634131052b41870ff30bb6fb23e23a87fd09d44666cba"
+    },
+    "plantuml.js": {
+      "path": "assets/libs/hugo-mod-plantuml/plantuml.js",
+      "package": null,
+      "version": "1.2026.6",
+      "source": "https://github.com/plantuml/plantuml/releases/download/v{version}/js-plantuml-{version}.zip",
+      "note": "PlantUML compiled to JavaScript with TeaVM, taken from the js-plantuml archive attached to the release. PlantUML publishes no npm package, so Dependabot cannot bump this pin; .github/workflows/plantuml-release.yml opens an issue when a newer release appears.",
+      "sha256": "48bf2790629d84a3573a109c305acc3eee84f69cbb5c11cd93395a018c1fe3b2"
+    }
+  }
+}

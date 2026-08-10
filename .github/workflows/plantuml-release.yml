@@ -1,0 +1,79 @@
+# PlantUML publishes no npm package, so Dependabot cannot watch the version
+# vendored in .vendored/package.json. This does the same job by hand: once a
+# week, compare the pinned version against the latest PlantUML release and open
+# an issue when it falls behind. See VENDORED.md.
+name: Watch PlantUML releases
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plantuml-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Compare the vendored version against the latest release
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pinned=$(node -p 'require("./.vendored/package.json").vendored["plantuml.js"].version')
+          latest=$(gh release view --repo plantuml/plantuml --json tagName --jq '.tagName' | sed 's/^v//')
+          {
+            echo "pinned=$pinned"
+            echo "latest=$latest"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$pinned" = "$latest" ]; then
+            echo "outdated=false" >> "$GITHUB_OUTPUT"
+            echo "plantuml.js is on the latest release, $pinned"
+          else
+            echo "outdated=true" >> "$GITHUB_OUTPUT"
+            echo "plantuml.js is on $pinned, latest release is $latest"
+          fi
+
+      - name: Open an issue
+        if: steps.compare.outputs.outdated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PINNED: ${{ steps.compare.outputs.pinned }}
+          LATEST: ${{ steps.compare.outputs.latest }}
+        run: |
+          set -euo pipefail
+          title="Vendored PlantUML is $PINNED, $LATEST is available"
+          open_issues=$(gh issue list --state open --limit 100 --json title \
+            | jq -r --arg t "$title" '[.[] | select(.title == $t)] | length')
+          if [ "$open_issues" != "0" ]; then
+            echo "An issue for $LATEST is already open."
+            exit 0
+          fi
+          node <<'JS' > "${RUNNER_TEMP}/issue.md"
+          const { PINNED, LATEST } = process.env;
+          const archive = `https://github.com/plantuml/plantuml/releases/download/v${LATEST}/js-plantuml-${LATEST}.zip`;
+          process.stdout.write([
+            `[PlantUML ${LATEST}](https://github.com/plantuml/plantuml/releases/tag/v${LATEST}) is out. This module vendors ${PINNED}.`,
+            '',
+            'To update:',
+            '',
+            `1. Take \`plantuml.js\` from ${archive} and put it over \`assets/libs/hugo-mod-plantuml/plantuml.js\`.`,
+            `2. Set the version and the new \`sha256sum\` in both \`.vendored/package.json\` and \`VENDORED.md\`.`,
+            '3. Run `node scripts/check-vendored.mjs`, then the test suite.',
+            '',
+            'Opened automatically by `.github/workflows/plantuml-release.yml`.',
+            '',
+          ].join('\n'));
+          JS
+          gh issue create --title "$title" --body-file "${RUNNER_TEMP}/issue.md"
