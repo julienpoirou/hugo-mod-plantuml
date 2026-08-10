@@ -4,14 +4,14 @@
   "version": "0.0.0",
   "description": "Declares the third-party libraries this module vendors under assets/libs/. Never installed at build time or at runtime: it exists so Dependabot tracks their versions and GitHub raises security alerts on the code we actually ship. See ../VENDORED.md.",
   "dependencies": {
-    "@viz-js/viz": "3.24.0"
+    "@viz-js/viz": "3.29.0"
   },
   "vendored": {
     "viz-global.js": {
       "path": "assets/libs/hugo-mod-plantuml/viz-global.js",
       "package": "@viz-js/viz",
       "source": "https://cdn.jsdelivr.net/npm/@viz-js/viz@{version}/dist/viz-global.js",
-      "sha256": "ef2cd8a08b5cf8b65e3634131052b41870ff30bb6fb23e23a87fd09d44666cba"
+      "sha256": "d94405c431c23f674e740f042514231e559d60fffc93dc557b22fafc295fbbc0"
     },
     "plantuml.js": {
       "path": "assets/libs/hugo-mod-plantuml/plantuml.js",
