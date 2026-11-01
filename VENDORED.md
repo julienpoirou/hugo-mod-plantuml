@@ -6,12 +6,12 @@ All files live in `assets/libs/hugo-mod-plantuml/`.
 
 | File | Library | Version | License | SHA-256 |
 |---|---|---|---|---|
-| `plantuml.js` | [PlantUML](https://github.com/plantuml/plantuml), compiled to JavaScript with TeaVM | 1.2026.6 | MIT | `48bf2790629d84a3573a109c305acc3eee84f69cbb5c11cd93395a018c1fe3b2` |
-| `viz-global.js` | [Viz.js](https://github.com/mdaines/viz-js) (Graphviz, the layout engine PlantUML calls for dot-based diagrams) | 3.29.0 | MIT | `d94405c431c23f674e740f042514231e559d60fffc93dc557b22fafc295fbbc0` |
+| `plantuml.js` | [PlantUML](https://github.com/plantuml/plantuml), compiled to JavaScript with TeaVM | 1.2026.9 | MIT | `4aa42554e9ff849f10b49ce737bf283b9e768a297e70c2833e9997e9af1575f3` |
+| `viz-global.js` | [Viz.js](https://github.com/mdaines/viz-js) (Graphviz, the layout engine PlantUML calls for dot-based diagrams) | 3.31.0 | MIT | `c9e0b310f9883910e01c66054b48b7ff4be3d8695141116635e72b0af152692e` |
 
-Source for `viz-global.js`: `https://cdn.jsdelivr.net/npm/@viz-js/viz@3.29.0/dist/viz-global.js`
+Source for `viz-global.js`: `https://cdn.jsdelivr.net/npm/@viz-js/viz@3.31.0/dist/viz-global.js`
 
-Source for `plantuml.js`: the `plantuml.js` entry of `https://github.com/plantuml/plantuml/releases/download/v1.2026.6/js-plantuml-1.2026.6.zip`
+Source for `plantuml.js`: the `plantuml.js` entry of `https://github.com/plantuml/plantuml/releases/download/v1.2026.9/js-plantuml-1.2026.9.zip`
 
 The copy shipped before 1.2026.6 came from an unstamped local build: rendering an invalid diagram made it draw `PlantUML version $version$ / $git.commit.id$ [Unknown compile time]`, placeholders an official release always substitutes. That is why its checksum matched no published archive. It has been replaced by the release build above, which renders the same diagrams identically.
 
