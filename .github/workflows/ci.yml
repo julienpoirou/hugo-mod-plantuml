@@ -153,6 +153,9 @@ jobs:
       - name: Install test dependencies
         run: npm ci
 
+      - name: Run property-based fuzz tests
+        run: npm run fuzz
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

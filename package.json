@@ -2,11 +2,15 @@
   "name": "hugo-mod-plantuml-tests",
   "private": true,
   "version": "0.0.0",
-  "description": "Headless-browser render verification for CI. Not published, not a runtime dependency of the Hugo module.",
+  "description": "Headless-browser render verification for CI, commit-message linting, and property-based fuzz testing. Not published, not a runtime dependency of the Hugo module.",
   "scripts": {
-    "verify": "node tests/verify-render.js"
+    "verify": "node tests/verify-render.js",
+    "fuzz": "node --test tests/fuzz.test.js"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "fast-check": "4.10.2",
     "playwright": "1.64.1"
   }
 }
