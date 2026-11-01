@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.4](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.3...v0.2.4) (2026-11-01)
+
+
+### Corrections 🐛
+
+* **ci:** Scope workflow token permissions and pin unpinned downloads ([#35](https://github.com/julienpoirou/hugo-mod-plantuml/issues/35)) ([0a160f7](https://github.com/julienpoirou/hugo-mod-plantuml/commit/0a160f783d36c937ee8c0f0e77a965b64441a5ba))
+* **vendored:** Update PlantUML to 1.2026.9 ([#34](https://github.com/julienpoirou/hugo-mod-plantuml/issues/34)) ([8ddad40](https://github.com/julienpoirou/hugo-mod-plantuml/commit/8ddad40ec8e60b98b17aba053563932f6fccf7fd))
+
 ## [0.2.3](https://github.com/julienpoirou/hugo-mod-plantuml/compare/v0.2.2...v0.2.3) (2026-08-09)
 
 
