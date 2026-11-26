@@ -21,7 +21,7 @@ jobs:
       - name: Check vendored assets against their pinned versions
         run: node scripts/check-vendored.mjs
 
-      - uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3
+      - uses: peaceiris/actions-hugo@d1c81a15d4e6dca7086a17b9c2565cb70fd576bf # v3
         with:
           hugo-version: "0.159.0"
           extended: true
